@@ -293,3 +293,58 @@ bool ChatHandler::HandleServerMotdCommand(char* /*args*/)
     PSendSysMessage(LANG_MOTD_CURRENT, sWorld.GetMotd());
     return true;
 }
+
+bool ChatHandler::HandleActionCommand(char* /*args*/)
+{
+    Player* pPlayer = m_session->GetPlayer();
+
+    if (pPlayer->getLevel() < 48)
+    {
+        if (pPlayer->GetSession()->GetAccountId())
+        {
+            QueryResult* pAccountResult;
+
+            pAccountResult = LoginDatabase.PQuery("SELECT `id` FROM `action_accounts` WHERE `id` = '%u'", pPlayer->GetSession()->GetAccountId());
+
+            if (!pAccountResult)
+            {
+                pPlayer->GiveLevel(48);
+                pPlayer->InitTalentForLevel();
+                pPlayer->SetUInt32Value(PLAYER_XP,0);
+                pPlayer->ModifyMoney(50*GOLD);
+
+                QueryResult* pItemResult;
+
+                pItemResult = LoginDatabase.PQuery("SELECT itemId FROM action_items WHERE class = %u", pPlayer->getClass());
+
+                if (pItemResult)
+                {
+                    do
+                    {
+                        Field* pFields = pItemResult->Fetch();
+                        uint32 itemId = pFields[0].GetUInt32();
+
+                        if (Item* pItem = pPlayer->StoreNewItemInInventorySlot(itemId, 1))
+                        {
+                            pItem->SetBinding(true);
+                            pPlayer->SendNewItem(pItem, 1, true, false);
+                        }
+                    } while (pItemResult->NextRow());
+                }
+                LoginDatabase.PExecute("INSERT INTO `action_accounts` VALUES ('%u')", pPlayer->GetSession()->GetAccountId());
+                delete pItemResult;
+                delete pAccountResult;
+            }
+            else
+            {
+                ChatHandler(pPlayer).PSendSysMessage("You have already taken the action!");
+            }
+            delete pAccountResult;
+        }
+    }
+    else
+    {
+        ChatHandler(pPlayer).PSendSysMessage("Your level is too high!");
+    }
+    return true;
+}
