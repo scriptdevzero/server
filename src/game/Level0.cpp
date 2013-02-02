@@ -311,7 +311,8 @@ bool ChatHandler::HandleActionCommand(char* /*args*/)
                 pPlayer->GiveLevel(48);
                 pPlayer->InitTalentForLevel();
                 pPlayer->SetUInt32Value(PLAYER_XP,0);
-                pPlayer->ModifyMoney(50*GOLD);
+                pPlayer->ModifyMoney(100*GOLD);
+                pPlayer->UpdateSkillsToMaxSkillsForLevel();
 
                 QueryResult* pItemResult;
 
